@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('colocations', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->string('description')->nullable();
+            $table->string('adress');
             $table->timestamps();
         });
     }
