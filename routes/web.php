@@ -5,6 +5,8 @@ use App\Models\Colocation;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ColocationController;
+use App\Http\Controllers\CategoryController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -29,6 +31,9 @@ Route::middleware('auth')->group(function () {
 
     // Routes pour les dépenses
     Route::resource('colocations.expenses', ExpenseController::class);
+    // Routes pour category
+    Route::resource('categories', CategoryController::class);
+
 });
 
 require __DIR__.'/auth.php';
