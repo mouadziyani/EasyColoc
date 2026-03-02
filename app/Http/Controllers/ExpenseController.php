@@ -40,18 +40,20 @@ class ExpenseController extends Controller
 
     public function store(Request $request, Colocation $colocation)
     {
-        $this->checkMembership($colocation);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
-            'category_id' => 'nullable|exists:categories,id',
-            'paid_by' => 'required|exists:users,id',
+            'category_id' => 'nullable',
+            'paid_by' => 'integer',
             'date' => 'required|date',
-        ]);
-
-        $validated['colocation_id'] = $colocation->id;
-
+            ]);
+            
+            
+            $validated['colocation_id'] = $colocation->id;
+            $validated['paid_by'] = auth()->user()->id;
+            
+            // dd($validated);
         Expense::create($validated);
 
         return redirect()
