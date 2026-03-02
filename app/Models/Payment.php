@@ -8,7 +8,7 @@ class Payment extends Model
 {
         protected $fillable = [
             'colocation_id',
-            'payer_id',
+            'sender_id',
             'receiver_id',
             'amount',
             'paid_at',
