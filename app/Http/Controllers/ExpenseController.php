@@ -3,63 +3,105 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Models\Colocation;
+use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ExpenseController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    private function checkMembership(Colocation $colocation)
     {
-        //
+        if (!$colocation->members()->where('users.id', Auth::id())->exists()) {
+            abort(403, 'Access denied. You are not a member of this colocation.');
+        }
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(Colocation $colocation)
     {
-        //
+        $this->checkMembership($colocation);
+
+        $expenses = $colocation->expenses()
+            ->with(['category', 'payer'])
+            ->latest()
+            ->get();
+
+        return view('expenses.index', compact('colocation', 'expenses'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function create(Colocation $colocation)
     {
-        //
+        $this->checkMembership($colocation);
+
+        $categories = Category::all();
+
+        return view('expenses.create', compact('colocation', 'categories'));
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Expense $expense)
+    public function store(Request $request, Colocation $colocation)
     {
-        //
+        $this->checkMembership($colocation);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+            'category_id' => 'nullable|exists:categories,id',
+            'paid_by' => 'required|exists:users,id',
+            'date' => 'required|date',
+        ]);
+
+        $validated['colocation_id'] = $colocation->id;
+
+        Expense::create($validated);
+
+        return redirect()
+            ->route('colocations.show', $colocation)
+            ->with('success', 'Dépense ajoutée avec succès !');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Expense $expense)
+    public function show(Colocation $colocation, Expense $expense)
     {
-        //
+        $this->checkMembership($colocation);
+
+        return view('expenses.show', compact('colocation', 'expense'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Expense $expense)
+    public function edit(Colocation $colocation, Expense $expense)
     {
-        //
+        $this->checkMembership($colocation);
+
+        $categories = Category::all();
+
+        return view('expenses.edit', compact('colocation', 'expense', 'categories'));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Expense $expense)
+    public function update(Request $request, Colocation $colocation, Expense $expense)
     {
-        //
+        $this->checkMembership($colocation);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+            'category_id' => 'nullable|exists:categories,id',
+            'paid_by' => 'required|exists:users,id',
+            'date' => 'required|date',
+        ]);
+
+        $expense->update($validated);
+
+        return redirect()
+            ->route('colocations.show', $colocation)
+            ->with('success', 'Dépense mise à jour avec succès !');
+    }
+
+    public function destroy(Colocation $colocation, Expense $expense)
+    {
+        $this->checkMembership($colocation);
+
+        $expense->delete();
+
+        return redirect()
+            ->route('colocations.show', $colocation)
+            ->with('success', 'Dépense supprimée avec succès !');
     }
 }
