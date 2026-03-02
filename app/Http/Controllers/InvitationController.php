@@ -3,63 +3,62 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invitation;
+use App\Models\Colocation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class InvitationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(Request $request, Colocation $colocation)
     {
-        //
+        if ($colocation->owner_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $invitation = Invitation::create([
+            'colocation_id' => $colocation->id,
+            'email' => $request->email,
+            'token' => Str::uuid()->toString(),
+            'status' => 'pending',
+        ]);
+        
+        return back()->with('success', 'Invitation envoyée avec succès.');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function accept($token)
     {
-        //
-    }
+        $invitation = Invitation::where('token', $token)
+            ->where('status', 'pending')
+            ->firstOrFail();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        if ($invitation->email !== Auth::user()->email) {
+            return redirect()->route('dashboard')
+                ->withErrors('Cette invitation ne correspond pas à votre email.');
+        }
+        $hasActive = Auth::user()->memberships()
+            ->whereNull('left_at')
+            ->exists();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Invitation $invitation)
-    {
-        //
-    }
+        if ($hasActive) {
+            return redirect()->route('dashboard')
+                ->withErrors('Vous avez déjà une colocation active.');
+        }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Invitation $invitation)
-    {
-        //
-    }
+        $invitation->colocation->memberships()->create([
+            'user_id' => Auth::id(),
+            'role' => 'member',
+            'joined_at' => now(),
+            'status' => 'active',
+        ]);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Invitation $invitation)
-    {
-        //
-    }
+        $invitation->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Invitation $invitation)
-    {
-        //
+        return redirect()->route('colocations.show', $invitation->colocation)
+            ->with('success', 'Invitation acceptée avec succès !');
     }
 }
