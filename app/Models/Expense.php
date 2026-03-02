@@ -15,6 +15,10 @@ class Expense extends Model
         'colocation_id'
     ];
 
+    protected $casts = [
+        'date' => 'datetime'
+    ];
+
     public function colocation()
     {
         return $this->belongsTo(Colocation::class);
