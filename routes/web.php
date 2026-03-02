@@ -7,7 +7,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ColocationController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvitationController;
-
+use App\Http\Controllers\PaymentController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -44,6 +44,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/invitations/accept/{token}', [InvitationController::class, 'accept'])
      ->name('invitations.accept');
+
+     Route::post('/colocations/{colocation}/leave', [ColocationController::class, 'leaveColocation'])
+    ->name('colocations.leave');
+    Route::post('/colocations/{colocation}/expenses/{expense}/mark-as-paid', [ExpenseController::class, 'markAsPaid'])
+        ->name('colocations.expenses.markAsPaid');
+        Route::post('/colocations/{colocation}/payments', [PaymentController::class, 'store'])->name('payments.store');
 
 });
 
