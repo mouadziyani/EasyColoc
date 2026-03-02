@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Invitation;
 use App\Models\Colocation;
 use Illuminate\Http\Request;
+use App\Notifications\ColocationInvitation;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -27,6 +29,9 @@ class InvitationController extends Controller
             'status' => 'pending',
         ]);
         
+        Notification::route('mail', $request->email)
+            ->notify(new ColocationInvitation($invitation));
+
         return back()->with('success', 'Invitation envoyée avec succès.');
     }
 
@@ -36,10 +41,16 @@ class InvitationController extends Controller
             ->where('status', 'pending')
             ->firstOrFail();
 
+        if (!Auth::check()) {
+            return redirect()->route('register', ['email' => $invitation->email])
+                ->with('info', 'Veuillez créer un compte pour accepter l\'invitation.');
+        }
+
         if ($invitation->email !== Auth::user()->email) {
             return redirect()->route('dashboard')
                 ->withErrors('Cette invitation ne correspond pas à votre email.');
         }
+
         $hasActive = Auth::user()->memberships()
             ->whereNull('left_at')
             ->exists();
