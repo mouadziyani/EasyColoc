@@ -70,8 +70,26 @@ class ColocationController extends Controller
             abort(403, 'Accès refusé.');
         }
 
-        $colocation->load(['members', 'owner']);
-        return view('colocations.show', compact('colocation'));
+        $colocation->load(['members', 'owner', 'expenses.category', 'expenses.payer']);
+
+        $totalExpenses = $colocation->expenses()->sum('amount');
+        $memberCount = $colocation->members()->count();
+        $individualShare = $memberCount > 0 ? $totalExpenses / $memberCount : 0;
+
+        $memberBalances = [];
+        foreach ($colocation->members as $member) {
+            $paid = $colocation->expenses()->where('paid_by', $member->id)->sum('amount');
+            
+            $balance = $paid - $individualShare;
+
+            $memberBalances[] = [
+                'name' => $member->name,
+                'paid' => $paid,
+                'balance' => $balance,
+            ];
+        }
+
+        return view('colocations.show', compact('colocation', 'memberBalances', 'totalExpenses'));
     }
 
     // Edit colocation
@@ -114,5 +132,25 @@ class ColocationController extends Controller
 
         return redirect()->route('colocations.index')
             ->with('success', 'Colocation supprimée avec succès.');
+    }
+
+    public function invite(Request $request, Colocation $colocation)
+    {
+        
+        if ($colocation->owner_id !== Auth::id()) {
+            abort(403, 'Seul le propriétaire peut inviter des membres.');
+        }
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ], [
+            'email.exists' => 'Cet utilisateur n\'existe pas dans notre système.'
+        ]);
+        $user = \App\Models\User::where('email', $request->email)->first();
+        if ($colocation->members()->where('users.id', $user->id)->exists()) {
+            return back()->withErrors(['email' => 'Cet utilisateur est déjà membre.']);
+        }
+        $colocation->members()->attach($user->id);
+
+        return redirect()->back()->with('success', 'Utilisateur ajouté avec succès !');
     }
 }
