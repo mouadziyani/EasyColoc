@@ -106,4 +106,16 @@ class ExpenseController extends Controller
             ->route('colocations.show', $colocation)
             ->with('success', 'Dépense supprimée avec succès !');
     }
+    public function markAsPaid(Colocation $colocation, Expense $expense)
+    {
+        if (auth()->id() !== $colocation->owner_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $expense->update([
+            'is_paid' => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Dépense marquée comme payée avec succès!');
+    }
 }
