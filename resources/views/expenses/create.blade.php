@@ -19,11 +19,12 @@
                         @error('title') <p class="text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <!-- Montant -->
+                    <!-- Montant total -->
                     <div>
-                        <label class="block text-gray-700 dark:text-gray-200 font-medium mb-1">Montant</label>
+                        <label class="block text-gray-700 dark:text-gray-200 font-medium mb-1">Montant Total</label>
                         <input type="number" step="0.01" name="amount" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md shadow-sm px-3 py-2" value="{{ old('amount') }}" required>
                         @error('amount') <p class="text-red-500 mt-1">{{ $message }}</p> @enderror
+                        <p class="text-gray-500 text-sm mt-1">Le montant sera automatiquement divisé entre les {{ $colocation->members->count() }} membres.</p>
                     </div>
 
                     <!-- Catégorie -->
@@ -38,25 +39,6 @@
                             @endforeach
                         </select>
                         @error('category_id') <p class="text-red-500 mt-1">{{ $message }}</p> @enderror
-
-                        <!-- Ajouter nouvelle catégorie -->
-                        <div class="mt-2 flex gap-2">
-                            <input type="text" name="new_category" placeholder="Nouvelle catégorie" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2">
-                            <span class="text-gray-400 text-sm self-center">Si vous ajoutez une nouvelle catégorie, elle sera créée automatiquement.</span>
-                        </div>
-                    </div>
-
-                    <!-- Payeur -->
-                    <div>
-                        <label class="block text-gray-700 dark:text-gray-200 font-medium mb-1">Payeur</label>
-                        <select name="paid_by" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md shadow-sm px-3 py-2" required>
-                            @foreach ($colocation->members as $member)
-                                <option value="{{ $member->id }}" {{ old('paid_by') == $member->id ? 'selected' : '' }}>
-                                    {{ $member->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('paid_by') <p class="text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <!-- Date -->
