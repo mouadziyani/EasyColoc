@@ -59,42 +59,80 @@
                     </div>
 
                     <div class="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xs uppercase tracking-[0.2em] font-black text-gray-400">Membres & Soldes</h3>
-                            <span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full">{{ $colocation->members->count() }}</span>
+                        <div class="flex justify-between items-center mb-8">
+                            <h3 class="text-xs uppercase tracking-[0.2em] font-black text-gray-400">Bilan Financier</h3>
+                            <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                {{ $colocation->members->count() }} Membres
+                            </span>
                         </div>
                         
-                        <div class="bg-gray-50 rounded-2xl p-6 text-center mb-6">
-                            <p class="text-xs text-gray-500 uppercase tracking-widest font-bold">Total Dépenses</p>
-                            <p class="text-4xl font-black text-gray-900 tracking-tighter">
-                                {{ number_format($totalExpenses ?? 0, 2) }} <span class="text-xl font-light text-gray-400">MAD</span>
-                            </p>
+                        <div class="grid grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-6 mb-8">
+                            <div class="text-center border-r border-gray-100">
+                                <p class="text-xs text-gray-500 uppercase tracking-widest font-bold">Total Dépenses</p>
+                                <p class="text-3xl font-black text-gray-900 tracking-tighter">
+                                    {{ number_format($totalExpenses ?? 0, 2) }} <span class="text-lg font-light text-gray-400">MAD</span>
+                                </p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 uppercase tracking-widest font-bold">Part / Pers.</p>
+                                <p class="text-3xl font-black text-gray-900 tracking-tighter">
+                                    {{ number_format(($totalExpenses ?? 0) / ($colocation->members->count() ?: 1), 2) }} <span class="text-lg font-light text-gray-400">MAD</span>
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="space-y-4">
+                        <div class="space-y-6">
                             @foreach($memberBalances as $balance)
-                                <div class="flex justify-between items-center pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div>
+                                <div class="relative pl-6 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:{{ $balance['balance'] > 0 ? 'bg-green-500' : ($balance['balance'] < 0 ? 'bg-red-500' : 'bg-gray-200') }}">
+                                    <div class="flex justify-between items-center mb-2">
                                         <p class="font-bold text-sm text-gray-900">{{ $balance['name'] }}</p>
-                                        <p class="text-xs text-gray-400">a payé: {{ number_format($balance['paid'], 2) }} MAD</p>
+                                        
+                                        @if($balance['balance'] > 0)
+                                            <span class="text-green-600 font-bold text-xs bg-green-50 px-3 py-1 rounded-full">
+                                                +{{ number_format($balance['balance'], 2) }} MAD
+                                            </span>
+                                        @elseif($balance['balance'] < 0)
+                                            <span class="text-red-600 font-bold text-xs bg-red-50 px-3 py-1 rounded-full">
+                                                {{ number_format($balance['balance'], 2) }} MAD
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 font-bold text-xs bg-gray-50 px-3 py-1 rounded-full">
+                                                À jour
+                                            </span>
+                                        @endif
                                     </div>
-                                    
-                                    @if($balance['balance'] > 0)
-                                        <span class="text-green-600 font-bold text-xs bg-green-50 px-3 py-1 rounded-full">
-                                            +{{ number_format($balance['balance'], 2) }} MAD
-                                        </span>
-                                    @elseif($balance['balance'] < 0)
-                                        <span class="text-red-600 font-bold text-xs bg-red-50 px-3 py-1 rounded-full">
-                                            {{ number_format($balance['balance'], 2) }} MAD
-                                        </span>
-                                    @else
-                                        <span class="text-gray-400 font-bold text-xs bg-gray-50 px-3 py-1 rounded-full">
-                                            À jour
-                                        </span>
-                                    @endif
+                                    <p class="text-xs text-gray-500">
+                                        A payé: <span class="font-semibold text-gray-700">{{ number_format($balance['paid'], 2) }} MAD</span>
+                                    </p>
                                 </div>
                             @endforeach
                         </div>
+
+                        @if(isset($debtsSettlement) && count($debtsSettlement) > 0)
+                            <div class="mt-10 pt-8 border-t border-gray-100">
+                                <h4 class="text-xs uppercase tracking-[0.2em] font-black text-gray-400 mb-6">Qui doit à qui ?</h4>
+                                <div class="space-y-3">
+                                    @foreach($debtsSettlement as $debt)
+                                        <div class="flex items-center justify-between text-sm bg-white border border-gray-100 p-4 rounded-2xl">
+                                            <span class="font-bold text-gray-900">{{ $debt['from'] }}</span>
+                                            <div class="flex-1 px-4 text-center">
+                                                <svg class="w-5 h-5 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                            </div>
+                                            <span class="font-bold text-gray-900">{{ $debt['to'] }}</span>
+                                            <form action="{{ route('payments.store', $colocation) }}" method="POST">
+                                                @csrf
+                                                <input type="hidden" name="sender_id" value="{{ $debt['from_id'] }}">
+                                                <input type="hidden" name="receiver_id" value="{{ $debt['to_id'] }}">
+                                                <input type="hidden" name="amount" value="{{ $debt['amount'] }}">
+                                                <button type="submit" class="ml-4 bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors">
+                                                    Payer
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -124,7 +162,21 @@
                                         <span class="text-2xl font-black tracking-tighter">{{ number_format($expense->amount, 2) }} <small class="text-sm font-light text-gray-400">MAD</small></span>
                                         
                                         @if(auth()->id() === $expense->user_id || auth()->id() === $colocation->owner_id)
-                                            <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                            <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 items-center">
+                                                
+                                                @if(auth()->id() === $colocation->owner_id && !$expense->is_paid)
+                                                    <form action="{{ route('colocations.expenses.markAsPaid', [$colocation, $expense]) }}" method="POST">
+                                                        @csrf
+                                                        <button class="text-[10px] font-bold text-green-600 bg-green-50 px-3 py-2 rounded-full hover:bg-green-100 uppercase tracking-widest">
+                                                            Payé
+                                                        </button>
+                                                    </form>
+                                                @elseif($expense->is_paid)
+                                                    <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-3 py-2 rounded-full uppercase tracking-widest">
+                                                        Payé
+                                                    </span>
+                                                @endif
+
                                                 <form action="{{ route('colocations.expenses.destroy', [$colocation, $expense]) }}" method="POST" onsubmit="return confirm('Sûr ?')">
                                                     @csrf @method('DELETE')
                                                     <button class="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all">
@@ -157,22 +209,25 @@
                 </button>
             </div>
 
-            <form action="{{ route('colocations.invite', $colocation) }}" method="POST" class="space-y-8">
-                @csrf
-                
-                <div class="relative group">
-                    <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 group-focus-within:text-black transition-colors">Adresse Email</label>
-                    <input type="email" name="email" 
-                           placeholder="Ex: ami@coloc.ma"
-                           class="w-full border-0 border-b border-gray-200 py-6 px-0 text-3xl font-light focus:ring-0 focus:border-black transition-all placeholder:text-gray-100 uppercase tracking-tighter"
-                           required>
-                    @error('email') <span class="text-xs text-red-600 mt-2 block font-mono italic">{{ $message }}</span> @enderror
-                </div>
 
-                <button type="submit" class="w-full bg-black text-white px-8 py-5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all">
-                    Envoyer l'invitation
-                </button>
-            </form>
+            @if($colocation->owner_id === auth()->id())
+                <form action="{{ route('colocations.invite', $colocation) }}" method="POST" class="space-y-8">
+                    @csrf
+                    
+                    <div class="relative group">
+                        <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 group-focus-within:text-black transition-colors">Adresse Email</label>
+                        <input type="email" name="email" 
+                            placeholder="Ex: ami@coloc.ma"
+                            class="w-full border-0 border-b border-gray-200 py-6 px-0 text-3xl font-light focus:ring-0 focus:border-black transition-all placeholder:text-gray-100 uppercase tracking-tighter"
+                            required>
+                        @error('email') <span class="text-xs text-red-600 mt-2 block font-mono italic">{{ $message }}</span> @enderror
+                    </div>
+
+                    <button type="submit" class="w-full bg-black text-white px-8 py-5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all">
+                        Envoyer l'invitation
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
     
