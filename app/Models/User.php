@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_global_admin',
     ];
 
     /**
@@ -31,18 +32,28 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        ];
+        
+        /**
+         * Get the attributes that should be cast.
+        *
+        * @return array<string, string>
+        */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_global_admin' => 'boolean',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    
+
+    public function colocations()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Colocation::class, 'owner_id');
+    }
+
+    public function memberships()
+    {
+        return $this->hasMany(Membership::class);
     }
 }
