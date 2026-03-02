@@ -6,10 +6,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ColocationController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InvitationController;
 
 
 Route::get('/', function () {
-    return view('welcome');
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
@@ -33,6 +37,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('colocations.expenses', ExpenseController::class);
     // Routes pour category
     Route::resource('categories', CategoryController::class);
+
+    Route::post('/colocations/{colocation}/invite', [InvitationController::class, 'store'])
+     ->name('colocations.invite');
+
+
+    Route::get('/invitations/accept/{token}', [InvitationController::class, 'accept'])
+     ->name('invitations.accept');
 
 });
 
